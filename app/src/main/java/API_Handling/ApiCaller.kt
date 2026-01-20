@@ -35,8 +35,14 @@ class ApiCaller(private val query: BookQuery) {
             }
         } catch (e: Exception) {
             return@withContext "Error: ${e.message}"
+
         }
     }
+    /* ToDo: A method that takes the output of fetchBook and prettifies it.
+        AKA we only want the results of the json that interest us
+        Goodreads has roundabout a similar layout as i am trying to achieve for sarch
+        Picute: Title, Author,
+    * */
 }
 fun parseUserInput(input: String): BookQuery {
     val parts = input.split(":", limit = 2)
