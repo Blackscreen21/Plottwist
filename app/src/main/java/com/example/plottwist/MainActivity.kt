@@ -29,6 +29,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.Color.Companion.Green
 import androidx.compose.foundation.layout.Arrangement.Center
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +48,7 @@ class MainActivity : ComponentActivity() {
 fun HomeScreen() {
     var userInput by remember { mutableStateOf("") }
     var searchHandler by remember { mutableStateOf(ApiCaller(BookQuery.Title(""))) }
+    var searchResult by remember { mutableStateOf("Results will appear here...") }
 
     Column(
         modifier = Modifier
@@ -57,29 +61,39 @@ fun HomeScreen() {
         OutlinedTextField(
             value = userInput,
             onValueChange = { userInput = it },
-            label = { Text("ISBN") },
-            placeholder = { Text("Search for the ISBN/Author/Title") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.Book,
-                    contentDescription = "Book icon"
-                )
-            },
+            label = { Text("ISBN / Author / Title") },
+            placeholder = { Text("Enter search query") },
+            leadingIcon = { Icon(Icons.Rounded.Book, contentDescription = "Book Icon") },
             trailingIcon = {
                 IconButton(onClick = {
-                    // parse the input and update the handler
-                    val query = parseUserInput(userInput)
-                    searchHandler = ApiCaller(query)
-                    // trigger API call here
+                    try {
+                        val query = parseUserInput(userInput)
+                        val apiCaller = ApiCaller(query)
+
+                        CoroutineScope(Dispatchers.Main).launch {
+                            searchResult = "Searching..."
+                            val result = apiCaller.fetchBook()
+                            searchResult = result
+                        }
+                    } catch (e: Exception) {
+                        searchResult = "Error: ${e.message}"
+                    }
                 }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = "Search"
-                    )
+                    Icon(Icons.Rounded.Search, contentDescription = "Search")
                 }
-            }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = searchResult,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
         )
         Spacer(modifier = Modifier.weight(1f))
+
 
         androidx.compose.foundation.layout.Row(
             modifier = Modifier
