@@ -26,6 +26,7 @@ import API_Handling.ApiCaller
 import API_Handling.Book
 import API_Handling.parseGoogleBooksResponse
 import API_Handling.parseUserInput
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.graphics.*
@@ -37,6 +38,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,23 +115,47 @@ fun HomeScreen() {
                 shouldSearch = false
             }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            items(books.size) { index ->
-                val book = books[index]
-                Text(
-                    text = "${book.title} - ${book.author}",
+            items(books) { book ->
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp)
-                )
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "${book.title} - ${book.author}", modifier = Modifier.weight(1f))
+
+                    Button(
+                        onClick = { /*remove from FireStore DB*/ },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBBDEFB)),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Tauschen👍")
+                        /*ToDo: Hier dann womöglich UserDatabase mit Büchern die man hochgeladen hat um aus
+                        * denen auszuwählen gegen was man tauschen will
+                        * Das wäre dann auch FireStore -> UserDB
+                        */
+
+                    }
+
+                    Button(
+                        onClick = { /*Add to FireBase DB*/ },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC8E6C9))
+                    ) {
+                        Text(text = "Zum Tausch hochladen")
+                        //ToDo: Wenn UserDB dann hier in UserDB und in die generelle verfügbarkeitsDB einfügen
+
+                    }
+                }
+                Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
             }
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
         Spacer(modifier = Modifier.weight(1f))
 
 
