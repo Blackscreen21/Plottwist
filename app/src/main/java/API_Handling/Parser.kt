@@ -15,7 +15,8 @@ fun parseGoogleBooksResponse(json: String): List<Book> {
             title = item.volumeInfo.title,
             author = item.volumeInfo.authors?.firstOrNull() ?: "Unknown",
             isbn = item.volumeInfo.industryIdentifiers?.find { it.type == "ISBN_13" }?.identifier ?: "",
-            coverUrl = item.volumeInfo.imageLinks?.thumbnail
+            coverUrl = (item.volumeInfo.imageLinks?.thumbnail ?: "")
+                .replace("http://", "https://")
         )
     } ?: emptyList()
 }
