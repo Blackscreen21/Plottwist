@@ -53,7 +53,7 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
     var searchResult by remember { mutableStateOf("") }
     var shouldSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    var isCheckingAvailability by remember { mutableStateOf(false) }
+    var showSearchAll by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val localStorage = remember { UserBookList(context) }
@@ -62,10 +62,10 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
     // Check book availability when books list changes
     LaunchedEffect(books) {
         if (books.isNotEmpty()) {
-            isCheckingAvailability = true
+            showSearchAll = true
             db.checkBooksExist(books) { availabilityMap ->
                 bookAvailability = availabilityMap
-                isCheckingAvailability = false
+                showSearchAll = false
             }
         }
     }
@@ -211,6 +211,29 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
                         textStyle = MaterialTheme.typography.bodyMedium
                     )
                 }
+                // Only show the "Load All Books" button if there are no books
+                if (books.isEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            // Fetch all books from Firebase
+                            showSearchAll = true
+                            db.getAllBooks { allBooks ->
+                                books = allBooks
+                                searchResult = if (allBooks.isNotEmpty()) "Found ${allBooks.size} volumes"
+                                else "No books found"
+                                showSearchAll = false
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = DarkGold,
+                            contentColor = DeepNavy
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Load All Books up for Trade")
+                    }
+                }
 
                 // Search logic
                 if (shouldSearch) {
@@ -243,7 +266,7 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
                 }
 
                 // Availability checking indicator
-                if (isCheckingAvailability) {
+                if (showSearchAll) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically
