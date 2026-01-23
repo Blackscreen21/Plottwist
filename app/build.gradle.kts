@@ -7,9 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.plottwist"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.plottwist"
@@ -63,5 +61,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.11")
     implementation("com.squareup.moshi:moshi:1.15.0")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.0")
-
+    
+    // Coil for image loading
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }
