@@ -15,15 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import API_Handling.Book
 import UserView.UserBookList
-import firepain.OwbDB
+import firepain.FireBaseDBinstance
 
 @Composable
 fun MyBooksScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val localStorage = remember { UserBookList(context) }
-    val db = remember { OwbDB() }
+    val db = remember { FireBaseDBinstance() }
 
     var userBooks by remember { mutableStateOf(localStorage.getUserBooks()) }
     var statusMessage by remember { mutableStateOf("") }

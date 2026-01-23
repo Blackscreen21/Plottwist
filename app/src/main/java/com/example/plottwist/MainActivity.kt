@@ -27,13 +27,17 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.rounded.LibraryBooks
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.LocalContext
-import firepain.OwbDB
+import firepain.FireBaseDBinstance
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,13 +53,26 @@ class MainActivity : ComponentActivity() {
 fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
     var userInput by remember { mutableStateOf("") }
     var books by remember { mutableStateOf<List<Book>>(emptyList()) }
+    var bookAvailability by remember { mutableStateOf<Map<Book, Boolean>>(emptyMap()) }
     var searchResult by remember { mutableStateOf("Results will appear here...") }
     var shouldSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var isCheckingAvailability by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val localStorage = remember { UserBookList(context) }
-    val db = remember { OwbDB() }
+    val db = remember { FireBaseDBinstance() }
+
+    // Check book availability when books list changes
+    LaunchedEffect(books) {
+        if (books.isNotEmpty()) {
+            isCheckingAvailability = true
+            db.checkBooksExist(books) { availabilityMap ->
+                bookAvailability = availabilityMap
+                isCheckingAvailability = false
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -73,7 +90,7 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "Search Books", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
+            Text(text = "Search Books", style = MaterialTheme.typography.headlineSmall)
             IconButton(onClick = onNavigateToMyBooks) {
                 Icon(
                     Icons.Rounded.LibraryBooks,
@@ -94,6 +111,7 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
                     if (books.isNotEmpty()) {
                         userInput = ""
                         books = emptyList()
+                        bookAvailability = emptyMap()
                         searchResult = "Results will appear here..."
                     } else {
                         searchQuery = userInput
@@ -133,6 +151,17 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
             )
         }
 
+        if (isCheckingAvailability) {
+            Row(
+                modifier = Modifier.padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Checking availability...", color = Color.Gray)
+            }
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -140,6 +169,8 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
                 .padding(8.dp)
         ) {
             items(books) { book ->
+                val isAvailable = bookAvailability[book] ?: false
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -150,7 +181,30 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
                         Text(text = book.title)
                         Text(text = book.author, color = Color.Gray)
                         if (book.isbn.isNotEmpty()) {
-                            Text(text = "ISBN: ${book.isbn}", color = Color.Gray, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                            Text(
+                                text = "ISBN: ${book.isbn}",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        // Availability indicator
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isAvailable) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
+                                contentDescription = if (isAvailable) "Available" else "Not available",
+                                tint = if (isAvailable) Color(0xFF42F647) else Color.Gray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isAvailable) "Available for trade" else "Not in database",
+                                color = if (isAvailable) Color(0xFF42F647) else Color.Gray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
 
@@ -168,14 +222,24 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
 
                         Button(
                             onClick = {
-                                db.deleteBookByTitle(book.title) {
-                                    searchResult = "Owner of ${book.title} will be messaged. If they are interested in any of the books in your List they will let you know."
+                                if (isAvailable) {
+                                    // Show trade request dialog or perform trade action
+                                    searchResult = "Trade request sent for '${book.title}'!"
+                                    db.deleteBookByTitle(book.title)
+                                    //ToDo: A list and page of books the user has selected to trade (List of books he wants)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A90E2)),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isAvailable) Color(0xFF4A90E2) else Color.Gray,
+                                disabledContainerColor = Color.Gray
+                            ),
+                            enabled = isAvailable,
                             modifier = Modifier.padding(start = 8.dp)
                         ) {
-                            Text(text = "Will ich haben")
+                            Text(
+                                text = if (isAvailable) "Tauschen" else "Nicht verfügbar",
+                                color = if (isAvailable) Color.White else Color.DarkGray
+                            )
                         }
                     }
                 }
