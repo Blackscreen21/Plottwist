@@ -4,15 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
@@ -26,27 +22,15 @@ import API_Handling.ApiCaller
 import API_Handling.Book
 import API_Handling.parseGoogleBooksResponse
 import API_Handling.parseUserInput
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.Color.Companion.Green
-import androidx.compose.foundation.layout.Arrangement.Center
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.HorizontalDivider
+import firepain.OwbDB
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,7 +42,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
 @Composable
 fun HomeScreen() {
     var userInput by remember { mutableStateOf("") }
@@ -67,6 +50,8 @@ fun HomeScreen() {
     var shouldSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
+    // Initialize database
+    val db = remember { OwbDB() }
 
     Column(
         modifier = Modifier
@@ -98,7 +83,7 @@ fun HomeScreen() {
                     Icon(icon, contentDescription = description)
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         )
 
         if (shouldSearch) {
@@ -117,6 +102,7 @@ fun HomeScreen() {
                 shouldSearch = false
             }
         }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -129,44 +115,47 @@ fun HomeScreen() {
                         .padding(8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "${book.title} - ${book.author}", modifier = Modifier.weight(1f))
+                    Text(
+                        text = "${book.title} - ${book.author}",
+                        modifier = Modifier.weight(1f)
+                    )
 
                     Button(
-                        onClick = { /*remove from FireStore DB*/ },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBBDEFB)),
-                        modifier = Modifier.padding(end = 8.dp)
+                        onClick = {
+                            // Add book to your "want to trade" list
+                            db.addBook(
+                                book = book,
+                                onSuccess = {
+                                    searchResult = "Book added to trade list!"
+                                },
+                                onFailure = { e ->
+                                    searchResult = "Failed to add book: ${e.message}"
+                                }
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC8E6C9)),
+                        modifier = Modifier.padding(start = 8.dp)
                     ) {
-                        Text("Tauschen👍")
-                        /*ToDo: Hier dann womöglich UserDatabase mit Büchern die man hochgeladen hat um aus
-                        * denen auszuwählen gegen was man tauschen will
-                        * Das wäre dann auch FireStore -> UserDB
-                        */
-
-                    }
-
-                    Button(
-                        onClick = { /*Add to FireBase DB*/ },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC8E6C9))
-                    ) {
-                        Text(text = "Zum Tausch hochladen")
-                        //ToDo: Wenn UserDB dann hier in UserDB und in die generelle verfügbarkeitsDB einfügen
-
+                        Text(text = "Hochladen")
                     }
                 }
-                HorizontalDivider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
+                HorizontalDivider(
+                    color = Color.Gray,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
         Spacer(modifier = Modifier.weight(1f))
 
-
         Row(
             modifier = Modifier
                 .background(Color(0xFFF8AACD))
                 .padding(10.dp)
                 .fillMaxWidth(),
-            horizontalArrangement = Center
+            horizontalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "© 2026 Plottwist App",
