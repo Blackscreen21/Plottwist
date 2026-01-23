@@ -61,7 +61,7 @@ fun MyBooksScreen(
                 )
             }
             Text(
-                text = "My Books (${userBooks.size})",
+                text = "My List (${userBooks.size})",
                 style = MaterialTheme.typography.headlineSmall,
                 color = CreamWhite
             )
