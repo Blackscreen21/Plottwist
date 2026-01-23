@@ -45,16 +45,22 @@ class ApiCaller(private val query: BookQuery) {
     * */
 }
 fun parseUserInput(input: String): BookQuery {
-    val parts = input.split(":", limit = 2)
-    require(parts.size == 2) { "Invalid input format" }
+    return when {
+        input.contains(":") -> {
+            val parts = input.split(":", limit = 2)
 
-    val key = parts[0].trim().lowercase()
-    val value = parts[1].trim()
+    //    require(parts.size == 2) { "Invalid input format" }
 
-    return when (key) {
-        "isbn" -> BookQuery.Isbn(value)
-        "author" -> BookQuery.Author(value)
-        "book", "title" -> BookQuery.Title(value)
-        else -> throw IllegalArgumentException("Unknown search type")
+            val key = parts[0].trim().lowercase()
+            val value = parts[1].trim()
+
+            when (key) {
+                "isbn" -> BookQuery.Isbn(value)
+                "author" -> BookQuery.Author(value)
+                "book", "title" -> BookQuery.Title(value)
+                else -> throw IllegalArgumentException("Unknown search type")
+            }
+        }
+        else -> BookQuery.Title(input)
     }
 }

@@ -23,15 +23,19 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.*
 import API_Handling.BookQuery
 import API_Handling.ApiCaller
+import API_Handling.Book
+import API_Handling.parseGoogleBooksResponse
 import API_Handling.parseUserInput
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.Color.Companion.Green
 import androidx.compose.foundation.layout.Arrangement.Center
+import androidx.compose.foundation.lazy.LazyColumn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.items
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,8 +51,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun HomeScreen() {
     var userInput by remember { mutableStateOf("") }
-    var searchHandler by remember { mutableStateOf(ApiCaller(BookQuery.Title(""))) }
+    var books by remember { mutableStateOf<List<Book>>(emptyList()) }
     var searchResult by remember { mutableStateOf("Results will appear here...") }
+    var shouldSearch by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
 
     Column(
         modifier = Modifier
@@ -66,18 +73,8 @@ fun HomeScreen() {
             leadingIcon = { Icon(Icons.Rounded.Book, contentDescription = "Book Icon") },
             trailingIcon = {
                 IconButton(onClick = {
-                    try {
-                        val query = parseUserInput(userInput)
-                        val apiCaller = ApiCaller(query)
-
-                        CoroutineScope(Dispatchers.Main).launch {
-                            searchResult = "Searching..."
-                            val result = apiCaller.fetchBook()
-                            searchResult = result
-                        }
-                    } catch (e: Exception) {
-                        searchResult = "Error: ${e.message}"
-                    }
+                    searchQuery = userInput
+                    shouldSearch = true
                 }) {
                     Icon(Icons.Rounded.Search, contentDescription = "Search")
                 }
@@ -85,13 +82,39 @@ fun HomeScreen() {
             modifier = Modifier.fillMaxWidth()
         )
 
+        if (shouldSearch) {
+            LaunchedEffect(Unit) {
+                try {
+                    val query = parseUserInput(searchQuery)
+                    val apiCaller = ApiCaller(query)
+
+                    searchResult = "Searching..."
+                    val result = apiCaller.fetchBook()
+                    books = parseGoogleBooksResponse(result)
+                    searchResult = "Found ${books.size} books"
+                } catch (e: Exception) {
+                    searchResult = "Error: ${e.message}"
+                }
+                shouldSearch = false
+            }
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
-        Text(
-            text = searchResult,
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
-        )
+        ) {
+            items(books.size) { index ->
+                val book = books[index]
+                Text(
+                    text = "${book.title} - ${book.author}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                )
+            }
+        }
         Spacer(modifier = Modifier.weight(1f))
 
 
