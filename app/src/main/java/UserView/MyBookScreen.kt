@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import UserView.UserBookList
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import com.example.plottwist.ui.theme.*
 import firepain.FireBaseDBinstance
 
@@ -53,9 +54,28 @@ fun MyBooksScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onNavigateBack) {
+
+            /*
+            Prevention of Multi-Click with which the app would soft-break
+            clicked starts as false.
+		    On first click, it sets clicked = true and calls your onNavigateBack.
+	        Any subsequent clicks do nothing because clicked is now true.
+		    The enabled = !clicked ensures the button visually appears disabled after pressing,
+		    giving better UX.
+		    */
+            var clicked by remember { mutableStateOf(false) }
+
+            IconButton(
+                onClick = {
+                    if (!clicked) {
+                        clicked = true
+                        onNavigateBack()
+                    }
+                },
+                enabled = !clicked
+            ) {
                 Icon(
-                    Icons.Rounded.ArrowBack,
+                    Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = "Back",
                     tint = RichGold
                 )
