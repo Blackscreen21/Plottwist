@@ -1,5 +1,8 @@
 package com.example.plottwist
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,14 +15,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import UserView.UserBookList
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.plottwist.ui.theme.*
 import firepain.FireBaseDBinstance
 
 @Composable
-fun MyBooksScreen(onNavigateBack: () -> Unit) {
+fun MyBooksScreen(
+    modifier: Modifier = Modifier,
+    onNavigateBack: () -> Unit
+) {
     val context = LocalContext.current
     val localStorage = remember { UserBookList(context) }
     val db = remember { FireBaseDBinstance() }
@@ -28,8 +37,9 @@ fun MyBooksScreen(onNavigateBack: () -> Unit) {
     var statusMessage by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
+            .background(DeepNavy)
             .padding(top = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -47,22 +57,31 @@ fun MyBooksScreen(onNavigateBack: () -> Unit) {
                 Icon(
                     Icons.Rounded.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color(0xFF42F647)
+                    tint = RichGold
                 )
             }
             Text(
                 text = "My Books (${userBooks.size})",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                color = CreamWhite
             )
             Spacer(modifier = Modifier.width(48.dp)) // Balance the layout
         }
 
-        if (statusMessage.isNotEmpty()) {
+        AnimatedVisibility(
+            visible = statusMessage.isNotEmpty(),
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
             Text(
                 text = statusMessage,
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .background(Color.Black.copy(alpha = 0.25f), shape = RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 color = if (statusMessage.contains("Error") || statusMessage.contains("failed"))
-                    Color.Red else Color(0xFF42F647)
+                    Color.Red else RichGold,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
 
@@ -94,71 +113,90 @@ fun MyBooksScreen(onNavigateBack: () -> Unit) {
                     .padding(8.dp)
             ) {
                 items(userBooks) { book ->
-                    Card(
+                    Card (
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp, horizontal = 8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            .padding(vertical = 6.dp, horizontal = 12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                        colors = CardDefaults.cardColors(containerColor = MidNavy),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = book.title,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    text = book.author,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.Gray
-                                )
-                                if (book.isbn.isNotEmpty()) {
-                                    Text(
-                                        text = "ISBN: ${book.isbn}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.Gray
+                        Column {
+                            // Gradient accent bar
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .background(
+                                        Brush.horizontalGradient(listOf(RichGold, DarkGold))
                                     )
-                                }
-                            }
+                            )
 
-                            Column {
-                                IconButton(
-                                    onClick = {
-                                        db.addBook(
-                                            book = book,
-                                            onSuccess = {
-                                                statusMessage = "'${book.title}' uploaded to central list!"
-                                            },
-                                            onFailure = { e ->
-                                                statusMessage = "Upload failed: ${e.message}"
-                                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = book.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = CreamWhite
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = book.author,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = CreamWhite.copy(alpha = 0.7f)
+                                    )
+                                    if (book.isbn.isNotEmpty()) {
+                                        Text(
+                                            text = "ISBN: ${book.isbn}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = CreamWhite.copy(alpha = 0.6f)
                                         )
                                     }
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.Upload,
-                                        contentDescription = "Upload to central list",
-                                        tint = Color(0xFF4A90E2)
-                                    )
                                 }
 
-                                IconButton(
-                                    onClick = {
-                                        localStorage.removeBook(book)
-                                        userBooks = localStorage.getUserBooks()
-                                        statusMessage = "'${book.title}' removed from your list"
-                                    }
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Icon(
-                                        Icons.Rounded.Delete,
-                                        contentDescription = "Remove from list",
-                                        tint = Color(0xFFFF6B6B)
-                                    )
+                                    IconButton(
+                                        onClick = {
+                                            db.addBook(
+                                                book = book,
+                                                onSuccess = {
+                                                    statusMessage = "'${book.title}' uploaded to central list!"
+                                                },
+                                                onFailure = { e ->
+                                                    statusMessage = "Upload failed: ${e.message}"
+                                                }
+                                            )
+                                        }
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Upload,
+                                            contentDescription = "Upload to central list",
+                                            tint = DarkGold
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            localStorage.removeBook(book)
+                                            userBooks = localStorage.getUserBooks()
+                                            statusMessage = "'${book.title}' removed from your list"
+                                        }
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Delete,
+                                            contentDescription = "Remove from list",
+                                            tint = Color(0xFFF55555)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -194,7 +232,8 @@ fun MyBooksScreen(onNavigateBack: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A90E2))
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = DarkGold)
             ) {
                 Text(text = "Upload All Books to Central List")
             }
@@ -202,14 +241,15 @@ fun MyBooksScreen(onNavigateBack: () -> Unit) {
 
         Row(
             modifier = Modifier
-                .background(Color(0xFFF8AACD))
+                .background(DeepNavy)
                 .padding(10.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "© 2026 Plottwist App",
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp),
+                color = DarkGold.copy(alpha = 0.8f)
             )
         }
     }
