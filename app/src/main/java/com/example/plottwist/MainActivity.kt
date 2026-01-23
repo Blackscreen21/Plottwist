@@ -45,6 +45,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.HorizontalDivider
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -151,7 +153,7 @@ fun HomeScreen() {
 
                     }
                 }
-                Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
+                HorizontalDivider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
             }
         }
 
@@ -159,7 +161,7 @@ fun HomeScreen() {
         Spacer(modifier = Modifier.weight(1f))
 
 
-        androidx.compose.foundation.layout.Row(
+        Row(
             modifier = Modifier
                 .background(Color(0xFFF8AACD))
                 .padding(10.dp)
