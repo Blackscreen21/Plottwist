@@ -36,6 +36,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.rounded.Close
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,8 +45,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             HomeScreen()
         }
-        }
     }
+}
 
 
 @Composable
@@ -73,10 +74,18 @@ fun HomeScreen() {
             leadingIcon = { Icon(Icons.Rounded.Book, contentDescription = "Book Icon") },
             trailingIcon = {
                 IconButton(onClick = {
-                    searchQuery = userInput
-                    shouldSearch = true
+                    if (books.isNotEmpty()) {
+                        userInput = ""
+                        books = emptyList()
+                        searchResult = "Results will appear here..."
+                    } else {
+                        searchQuery = userInput
+                        shouldSearch = true
+                    }
                 }) {
-                    Icon(Icons.Rounded.Search, contentDescription = "Search")
+                    val icon = if (books.isNotEmpty()) Icons.Rounded.Close else Icons.Rounded.Search
+                    val description = if (books.isNotEmpty()) "Clear" else "Search"
+                    Icon(icon, contentDescription = description)
                 }
             },
             modifier = Modifier.fillMaxWidth()
