@@ -17,11 +17,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.*
-import API_Handling.BookQuery
 import API_Handling.ApiCaller
 import API_Handling.Book
 import API_Handling.parseGoogleBooksResponse
 import API_Handling.parseUserInput
+import UserView.Nav
+import UserView.UserBookList
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,6 +31,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.rounded.LibraryBooks
+import androidx.compose.ui.platform.LocalContext
 import firepain.OwbDB
 
 class MainActivity : ComponentActivity() {
@@ -37,20 +40,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            HomeScreen()
+            Nav()
         }
     }
 }
 
 @Composable
-fun HomeScreen() {
+fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
     var userInput by remember { mutableStateOf("") }
     var books by remember { mutableStateOf<List<Book>>(emptyList()) }
     var searchResult by remember { mutableStateOf("Results will appear here...") }
     var shouldSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
-    // Initialize database
+    val context = LocalContext.current
+    val localStorage = remember { UserBookList(context) }
     val db = remember { OwbDB() }
 
     Column(
@@ -60,6 +64,24 @@ fun HomeScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Top navigation bar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "Search Books", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
+            IconButton(onClick = onNavigateToMyBooks) {
+                Icon(
+                    Icons.Rounded.LibraryBooks,
+                    contentDescription = "My Books",
+                    tint = Color(0xFF42F647)
+                )
+            }
+        }
 
         OutlinedTextField(
             value = userInput,
@@ -103,9 +125,18 @@ fun HomeScreen() {
             }
         }
 
+        if (searchResult.isNotEmpty()) {
+            Text(
+                text = searchResult,
+                modifier = Modifier.padding(16.dp),
+                color = if (searchResult.startsWith("Error")) Color.Red else Color.Gray
+            )
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .padding(8.dp)
         ) {
             items(books) { book ->
@@ -115,45 +146,38 @@ fun HomeScreen() {
                         .padding(8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "${book.title} - ${book.author}",
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Button(
-                        onClick = {
-                            // Add book to your "want to trade" list
-                            db.addBook(
-                                book = book,
-                                onSuccess = {
-                                    searchResult = "Book added to trade list!"
-                                },
-                                onFailure = { e ->
-                                    searchResult = "Failed to add book: ${e.message}"
-                                }
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF42F647)),
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        Text(text = "Hochladen")
-                    }
-                    Button(
-                        onClick = {
-                            // Add book to your "want to trade" list
-                            db.deleteBookByTitle(
-                                book.title,
-                                onSuccess = {
-                                    searchResult = "Success! The user has been contacted and will let you know if any of your books interest them."
-                                }
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF42F647)),
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        Text(text = "Will ich haben")
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = book.title)
+                        Text(text = book.author, color = Color.Gray)
+                        if (book.isbn.isNotEmpty()) {
+                            Text(text = "ISBN: ${book.isbn}", color = Color.Gray, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                        }
                     }
 
+                    Column {
+                        Button(
+                            onClick = {
+                                localStorage.addBook(book)
+                                searchResult = "'${book.title}' added to your list!"
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF42F647)),
+                            modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+                        ) {
+                            Text(text = "Meine Liste")
+                        }
+
+                        Button(
+                            onClick = {
+                                db.deleteBookByTitle(book.title) {
+                                    searchResult = "Owner of ${book.title} will be messaged. If they are interested in any of the books in your List they will let you know."
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A90E2)),
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Text(text = "Will ich haben")
+                        }
+                    }
                 }
                 HorizontalDivider(
                     color = Color.Gray,
@@ -162,9 +186,6 @@ fun HomeScreen() {
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
-        Spacer(modifier = Modifier.weight(1f))
 
         Row(
             modifier = Modifier
