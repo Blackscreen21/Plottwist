@@ -133,11 +133,27 @@ fun HomeScreen() {
                                 }
                             )
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC8E6C9)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF42F647)),
                         modifier = Modifier.padding(start = 8.dp)
                     ) {
                         Text(text = "Hochladen")
                     }
+                    Button(
+                        onClick = {
+                            // Add book to your "want to trade" list
+                            db.deleteBookByTitle(
+                                book.title,
+                                onSuccess = {
+                                    searchResult = "Success! The user has been contacted and will let you know if any of your books interest them."
+                                }
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF42F647)),
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Text(text = "Will ich haben")
+                    }
+
                 }
                 HorizontalDivider(
                     color = Color.Gray,

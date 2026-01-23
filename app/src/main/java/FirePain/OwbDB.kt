@@ -16,6 +16,7 @@ class OwbDB {
             "title" to book.title,
             "author" to book.author,
             "isbn" to book.isbn,
+            "coverUrl" to book.coverUrl,
             "timestamp" to System.currentTimeMillis()
         )
 
@@ -71,17 +72,37 @@ class OwbDB {
         })
     }
 
-    fun deleteBook(book: Book, onSuccess: () -> Unit = {}) {
-        // Find and delete by ISBN (unique identifier)
-        booksRef.orderByChild("isbn").equalTo(book.isbn).get()
+    // Option 1: Get all books and filter in-memory (only good for small datasets)
+    fun deleteBookByTitle(title: String, onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {
+        booksRef.get()
             .addOnSuccessListener { snapshot ->
+                val tasks = mutableListOf<com.google.android.gms.tasks.Task<Void>>()
+
                 for (childSnapshot in snapshot.children) {
-                    childSnapshot.ref.removeValue()
+                    val bookTitle = childSnapshot.child("title").value as? String
+                    if (bookTitle == title) {
+                        tasks.add(childSnapshot.ref.removeValue())
+                    }
+                }
+
+                if (tasks.isEmpty()) {
+                    Log.w("RealtimeDB", "No book found with title: $title")
+                    onFailure(Exception("No book found with title: $title"))
+                } else {
+                    com.google.android.gms.tasks.Tasks.whenAll(tasks)
                         .addOnSuccessListener {
-                            Log.d("RealtimeDB", "Book deleted: ${book.title}")
+                            Log.d("RealtimeDB", "Book(s) deleted: $title")
                             onSuccess()
                         }
+                        .addOnFailureListener { e ->
+                            Log.e("RealtimeDB", "Failed to delete book(s): $title", e)
+                            onFailure(e)
+                        }
                 }
+            }
+            .addOnFailureListener { e ->
+                Log.e("RealtimeDB", "Failed to query books", e)
+                onFailure(e)
             }
     }
 }
