@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -34,8 +35,8 @@ fun MyBooksScreen(
     val localStorage = remember { UserBookList(context) }
     val db = remember { FireBaseDBinstance() }
 
-    var userBooks by remember { mutableStateOf(localStorage.getUserBooks()) }
-    var statusMessage by remember { mutableStateOf("") }
+    var userBooks by rememberSaveable { mutableStateOf(localStorage.getUserBooks()) }
+    var statusMessage by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = modifier

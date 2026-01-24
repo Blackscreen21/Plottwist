@@ -3,7 +3,6 @@ package com.example.plottwist
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -14,6 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -21,12 +22,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import API_Handling.*
 import UserView.Nav
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.request.ImageRequest
 import com.example.plottwist.ui.theme.*
 import firepain.FireBaseDBinstance
 import UserView.UserBookList
@@ -35,7 +39,6 @@ import androidx.compose.material.icons.automirrored.rounded.LibraryBooks
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             PlottwistTheme {
                 Nav()
@@ -47,15 +50,24 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
-    var userInput by remember { mutableStateOf("") }
-    var books by remember { mutableStateOf<List<Book>>(emptyList()) }
+    var userInput by rememberSaveable { mutableStateOf("") }
+    
+    // Custom saver for List<Book>
+    val bookListSaver = listSaver<List<Book>, Book>(
+        save = { it.toList() },
+        restore = { it.toList() }
+    )
+    
+    var books by rememberSaveable(stateSaver = bookListSaver) { mutableStateOf<List<Book>>(emptyList()) }
     var bookAvailability by remember { mutableStateOf<Map<Book, Boolean>>(emptyMap()) }
-    var searchResult by remember { mutableStateOf("") }
-    var shouldSearch by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    var showSearchAll by remember { mutableStateOf(false) }
+    var searchResult by rememberSaveable { mutableStateOf("") }
+    var shouldSearch by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var showSearchAll by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
     val localStorage = remember { UserBookList(context) }
     val db = remember { FireBaseDBinstance() }
 
@@ -79,16 +91,18 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
                 )
             )
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = 18.dp)
         ) {
             // Header section
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                 // Top decorative border
                 FiligreeBorder(color = RichGold)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -236,8 +250,8 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
                 }
 
                 // Search logic
-                if (shouldSearch) {
-                    LaunchedEffect(Unit) {
+                LaunchedEffect(shouldSearch, searchQuery) {
+                    if (shouldSearch) {
                         try {
                             val query = parseUserInput(searchQuery)
                             val apiCaller = ApiCaller(query)
@@ -289,22 +303,19 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Divider before results
-                if (books.isNotEmpty()) {
-                    OrnateDivider(color = RichGold)
+                    // Divider before results
+                    if (books.isNotEmpty()) {
+                        OrnateDivider(color = RichGold)
+                    }
                 }
             }
 
             // Book results list
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(books) { book ->
-                    val isAvailable = bookAvailability[book] ?: false
+            items(books) { book ->
+                val isAvailable = bookAvailability[book] ?: false
+                Box(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                ) {
                     StyledBookCard(
                         book = book,
                         isAvailable = isAvailable,
@@ -320,45 +331,55 @@ fun SearchScreen(onNavigateToMyBooks: () -> Unit) {
                         }
                     )
                 }
-
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
             }
 
-            // Footer
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                OrnateDivider(color = RichGold)
-                Spacer(modifier = Modifier.height(4.dp))
-                ButtonDots(color = RichGold, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
+            // Flexible spacer - pushes footer to bottom when content is short
+            item {
+                // When no books: fill remaining space to push footer to actual bottom
+                // screenHeight - (header ~350dp + footer ~100dp) = remaining space
+                val remainingSpace = if (books.isEmpty()) {
+                    (screenHeight - 450.dp).coerceAtLeast(50.dp) // At least 50dp spacing
+                } else {
+                    0.dp
+                }
+                Spacer(modifier = Modifier.height(remainingSpace))
+            }
+
+            // Footer - always at the end
+            item {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(DarkGold, RichGold, DarkGold)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    OrnateDivider(color = RichGold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    ButtonDots(color = RichGold, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(DarkGold, RichGold, DarkGold)
+                                )
+                            )
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "© MMXXVI · PLOTTWIST",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                letterSpacing = 2.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = DeepNavy,
+                                fontSize = 10.sp
                             )
                         )
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "© MMXXVI · PLOTTWIST",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            letterSpacing = 2.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = DeepNavy,
-                            fontSize = 10.sp
-                        )
-                    )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
@@ -395,11 +416,39 @@ fun StyledBookCard(
                     .border(2.dp, RichGold, RoundedCornerShape(4.dp))
                     .background(DeepNavy, RoundedCornerShape(4.dp))
             ) {
-                AsyncImage(
-                    model = book.coverUrl,
+                SubcomposeAsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(book.coverUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = "Book cover",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = RichGold,
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    },
+                    error = {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Rounded.Book,
+                                contentDescription = "No image",
+                                tint = RichGold.copy(0.3f),
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                    }
                 )
             }
 

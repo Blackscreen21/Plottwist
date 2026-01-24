@@ -1,5 +1,8 @@
 package API_Handling
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
 
 data class GoogleBooksResponse(
     val items: List<BookItem>?
@@ -25,9 +28,10 @@ data class ImageLinks(
     val thumbnail: String?
 )
 
+@Parcelize
 data class Book(
     val title: String,
     val author: String,
     val isbn: String,
     val coverUrl: String?
-)
+) : Parcelable
